@@ -1,36 +1,52 @@
-# Cold-demo chain, chat edition
+# Cold-demo console, chat edition
 
-No API, no server. The chain runs as a sequence of messages in one Claude chat inside a Project that has your connectors (Slack, email, calendar, Drive, meeting notes, CRM). Context carries between messages, so each prompt reads the tags the earlier ones produced by name.
+The chat is the runtime and the chat renders the GUI. You set up one Project, then each deal is one chat and a handful of short commands. Claude runs the chain and keeps a console artifact up to date in the thread; you never paste a prompt or open a file.
 
 ## Setup, once
 
-1. Create a Project. Paste `project_instructions.md` into its custom instructions. That file holds the operating theory, the rubric and the banned moves, so every chat in the project scores against them without re-pasting.
-2. Make sure the connectors are enabled for that org: Slack, Gmail or Outlook, Google Calendar, Google Drive or SharePoint, Granola or Gong, Notion, Salesforce if you have it.
-3. Optional: a second chat in the same project called "Judge" for the strict evaluation path (see prompt 05).
+1. Create a Project in the org that has the connectors (Slack, email, calendar, Drive, meeting notes, CRM).
+2. Paste `project_instructions.md` into the Project's custom instructions.
+3. Add `knowledge/chain.md` and `knowledge/console.md` to the Project's knowledge.
 
 ## Per deal
 
-Open a new chat in the project. Send the prompts in order, filling the **[bracketed]** fields. Read the output between each one; two are marked as checkpoints where you should actually stop.
+Open a new chat in the Project.
 
-| # | Prompt | What it does | Stop? |
-| --- | --- | --- | --- |
-| 00 | harvest | Searches your connectors in a fixed order and returns everything internal, with provenance | |
-| 01 | footprint | Adds public research, tiers the evidence, three hinge hypotheses, mirror-tenant spec | |
-| 02 | commit | Picks the hinge, writes the 90-second open, pivots, retell, memo to the rep | **yes** |
-| 03 | storyboard | Scenes as decision moments, probes every 6-7 min, mandatory scenes, cut-at-fifteen | |
-| 04 | scenes | One message per scene; then pivot A, then pivot B | |
-| 05 | evaluate | Fast path in-thread, or strict path in the Judge chat | |
-| 06 | optimize | Fix only what was flagged; cap two per scene | |
-| 07 | assemble | Concatenate and contradiction-check | |
-| 08 | red team | Five personas who actually show up to cold demos | |
-| 09 | whole | Final score and final script | **yes** |
-| 10 | package | Opening card, scripts, signal guide, tenant build list, channel kit, debrief template | |
-| 11 | chain two | After demo one: transcript in, debrief and confirmed hinge out, then re-run from 02 | |
+```
+start Harborline Logistics rep: Jen Alvarez time: 45
+```
+Claude creates the console artifact and runs the harvest through your connectors. Look at the Discovery tab.
 
-## Why it's shaped this way
+```
+next
+```
+Footprint (public research, three hinges, tenant spec). Then `next` again: commit. **This is checkpoint one**: read the Hinge tab. If it's wrong, type the correction in plain words ("lead with rank 2, the evidence line should mention the four P1s") and Claude redoes it. Copy the memo to the rep from the Hinge tab and send it.
 
-- The harvest prompt names the tools and the order because connector search is only as good as the query plan; left to itself the model searches the prospect name once and stops.
-- Scenes are written one per message. One message for all scenes produces a script that reads like six demos stitched together; the ledger line at the end of each scene is what keeps the thread.
-- The evaluator can't be truly independent inside one thread. The Judge chat is the fix: same project (rubric, banned moves), none of the deal context, so it grades the scene and not the story it already believes.
-- Nothing here says "think carefully" or "double-check". Opus does that unprompted; the instruction makes it over-verify. If output drifts toward median-SE material, add the pattern to the banned-moves list in the project instructions, with its reason, rather than adding "avoid generic" language.
-- Connectors are read-only for this work. The project instructions say so, and every prompt that touches them repeats it.
+```
+next
+```
+Storyboard. Then `next` repeatedly: each one writes, evaluates and if needed revises one scene, main line first, then pivot A, then pivot B. Watch the Scenes tab fill. `scene S3` rewrites one; `judge S3` re-grades one; `skip` moves on.
+
+After the last scene, `next` assembles and contradiction-checks, `next` red-teams, `next` scores the whole script. **Checkpoint two**: read Residuals. Then:
+
+```
+package
+```
+The Package tab has everything for the room with a copy button each. Put the Signal guide tab on your second screen.
+
+After the call, in the same chat, attach the recording or transcript and the chat log, say who joined the channel, and type `debrief`. Then `next` re-runs from commit for demo two, with the confirmed hinge and the named champion.
+
+## The files
+
+| File | What it is |
+| --- | --- |
+| `project_instructions.md` | Role, commands, conventions, operating theory, rubric, banned moves. Goes in custom instructions. |
+| `knowledge/chain.md` | The twelve steps with their output contracts. Goes in Project knowledge. Generated from `prompts/`. |
+| `knowledge/console.md` | What the console artifact shows and how. Goes in Project knowledge. |
+| `prompts/` | The steps as standalone paste-in prompts, for anyone who wants to run a step by hand or in a chat without the Project. |
+
+## If something drifts
+
+- Output starting to look like a median demo: add the pattern to the banned-moves list in the instructions, with its reason. Don't add "avoid generic" language.
+- A scene keeps failing evaluation: `judge S3` shows why; `scene S3` with a plain-words correction appended usually fixes it.
+- The console shows invented detail: it has been told not to; `redo: only facts from the tags` and check the tier labels.

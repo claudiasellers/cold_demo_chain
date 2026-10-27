@@ -6,7 +6,7 @@ Three editions share the same prompts, operating theory, rubric and banned moves
 
 | Folder | Runs as | Use when |
 | --- | --- | --- |
-| `chat/` | Paste-in prompts inside a Claude Project with your connectors (Slack, email, calendar, docs, transcripts, CRM) | **Default.** No API, no server; harvest runs through the connectors in the chat |
+| `chat/` | A Claude Project: short commands in a chat, Claude runs the chain through your connectors and renders a console artifact | **Default.** No API, no server, no files |
 | `python/` | API runner, one Messages call per link, Agent SDK for harvest | Batch or scripted use |
 | `js/` | Node server + browser UI, same run layout as python | A shared UI for a team |
 
