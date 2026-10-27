@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cold Demo Chain</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mute:#6b6b6b; --line:#e3e3e3; --acc:#2f5fd1; --ok:#1f8a4c; --warn:#b26a00; --bad:#b3261e; --pill:#f2f2f2; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141414; --fg:#ececec; --mute:#9a9a9a; --line:#2b2b2b; --pill:#222; } }
+  * { box-sizing:border-box } body { margin:0; font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg) }
+  header { display:flex; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line) }
+  header h1 { font-size:15px; margin:0 } header select, header input, button { font:inherit }
+  button { padding:6px 12px; border:1px solid var(--line); background:var(--pill); color:var(--fg); border-radius:6px; cursor:pointer }
+  button.primary { background:var(--acc); color:#fff; border-color:var(--acc) } button:disabled { opacity:.5; cursor:default }
+  main { display:grid; grid-template-columns: 260px 1fr; min-height:calc(100vh - 50px) }
+  @media (max-width:800px) { main { grid-template-columns:1fr } aside { border-right:0; border-bottom:1px solid var(--line) } }
+  aside { border-right:1px solid var(--line); padding:12px }
+  section { padding:16px; overflow:auto }
+  .pipe { display:flex; flex-direction:column; gap:4px }
+  .link { display:flex; justify-content:space-between; padding:6px 8px; border-radius:6px; background:var(--pill); font-family:ui-monospace,Menlo,monospace; font-size:12px }
+  .link .s { color:var(--mute) } .link.started .s { color:var(--warn) } .link.done .s { color:var(--ok) } .link.flag .s{ color:var(--bad) }
+  .tabs { display:flex; gap:4px; margin-bottom:12px; flex-wrap:wrap } .tabs button.on { background:var(--acc); color:#fff; border-color:var(--acc) }
+  textarea { width:100%; min-height:50vh; font:12px/1.4 ui-monospace,Menlo,monospace; padding:10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg) }
+  pre { white-space:pre-wrap; font:12px/1.4 ui-monospace,Menlo,monospace; background:var(--pill); padding:10px; border-radius:6px }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0 }
+  .banner { padding:10px 12px; border-radius:6px; border:1px solid var(--warn); margin-bottom:12px } .banner.err { border-color:var(--bad) }
+  .pkg h3 { margin:16px 0 6px; font-size:13px } .copy { float:right; font-size:11px; padding:2px 8px }
+  .mute { color:var(--mute) } form.new { display:grid; } form.new[hidden] { display:none; gap:6px; margin-bottom:12px } form.new input, form.new textarea { font:inherit; padding:6px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg) } form.new textarea { min-height:60px }
+</style>
+</head>
+<body>
+<header>
+  <h1>Cold Demo Chain</h1>
+  <select id="deal"></select>
+  <button id="newDeal">New deal</button>
+  <span id="status" class="mute"></span>
+</header>
+<main>
+  <aside>
+    <form class="new" id="newForm" hidden>
+      <input name="prospect_name" placeholder="Prospect name (required)" required>
+      <input name="rep_name" placeholder="Rep name (optional)">
+      <textarea name="invite" placeholder="Paste invite only if you won't run harvest"></textarea>
+      <textarea name="rep_note" placeholder="Rep note, same"></textarea>
+      <button class="primary">Create</button>
+    </form>
+    <div class="row">
+      <button id="btnHarvest">1. Harvest</button>
+      <button id="btnRun" class="primary">2. Run chain</button>
+    </div>
+    <div class="row">
+      <select id="from"></select><button id="btnFrom">Run from</button>
+      <label><input type="checkbox" id="skipCp"> skip checkpoints</label>
+    </div>
+    <div class="pipe" id="pipe"></div>
+    <div class="row" style="margin-top:12px"><button id="btnChain2">Chain 2 (transcript)</button></div>
+  </aside>
+  <section>
+    <div id="banner"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="view"></div>
+  </section>
+</main>
+<script>
+const LINKS = ["00a_harvest","00_footprint","01_commit","02_storyboard","03_main_line","03p_branches","03b_signal_guide","06_assembled","07_red_team_all","08_whole","09_package"];
+const FROM = ["00","01","02","03","06","07","08","09"];
+const $ = (s) => document.querySelector(s);
+let deal = null, es = null, state = {};
+const api = (p, o) => fetch("/api" + p, o).then(r => r.ok ? (r.headers.get("content-type")?.includes("json") ? r.json() : r.text()) : r.text().then(t => { throw new Error(t) }));
+const post = (p, b) => api(p, { method:"POST", headers:{ "content-type":"application/json" }, body: JSON.stringify(b || {}) });
+const put = (p, b) => api(p, { method:"PUT", headers:{ "content-type":"application/json" }, body: JSON.stringify(b || {}) });
+
+async function loadDeals() {
+  const deals = await api("/deals");
+  $("#deal").innerHTML = deals.map(d => `<option value="${d.deal}">${d.prospect_name || d.deal}</option>`).join("") || "<option value=''>no deals</option>";
+  if (!deal && deals[0]) deal = deals[0].deal;
+  if (deal) { $("#deal").value = deal; selectDeal(deal); }
+}
+function selectDeal(d) {
+  deal = d; state = {}; renderPipe(); $("#banner").innerHTML = "";
+  if (es) es.close();
+  es = new EventSource(`/api/deals/${deal}/events`);
+  es.onmessage = (e) => { const ev = JSON.parse(e.data); if (ev.type === "history") ev.events.forEach(apply); else apply(ev); };
+  showTab("review");
+}
+function apply(ev) {
+  if (ev.type === "link") { state[ev.link.split("#")[0]] = ev.status; state._last = ev; }
+  if (ev.type === "tool") $("#status").textContent = "harvest: " + ev.name.replace("mcp__","");
+  if (ev.type === "harvest") $("#status").textContent = "connectors: " + ev.servers.map(s => s.join(":")).join(", ");
+  if (ev.type === "flag") state._flags = (state._flags || 0) + 1;
+  if (ev.type === "job") {
+    if (ev.status === "checkpoint") banner(`Checkpoint after <b>${ev.at}</b>. Review and edit it in its tab, then <b>Run from</b> the next link.`, false), showTab(ev.at);
+    else if (ev.status === "error") banner(`<pre>${ev.error}</pre>`, true);
+    else if (ev.status === "done") { banner(`Done through ${ev.at}.`, false); if (ev.at === "09") showTab("package"); }
+    $("#status").textContent = "";
+  }
+  renderPipe();
+}
+function banner(html, err) { $("#banner").innerHTML = `<div class="banner ${err ? "err" : ""}">${html}</div>`; }
+function renderPipe() {
+  const busy = Object.values(state).includes("started");
+  $("#btnHarvest").disabled = $("#btnRun").disabled = $("#btnFrom").disabled = busy || !deal;
+  $("#pipe").innerHTML = LINKS.map(l => {
+    const alias = { "06_assembled":"06_assemble", "03_main_line":"03_scene", "03p_branches":"03_scene", "07_red_team_all":"07_red_team" };
+    const st = state[l] || state[alias[l]] || "";
+    return `<div class="link ${st}"><span>${l}</span><span class="s">${st || "—"}</span></div>`;
+  }).join("");
+  $("#tabs").innerHTML = ["review","package",...LINKS].map(t => `<button data-t="${t}" class="${t===state._tab?"on":""}">${t}</button>`).join("");
+}
+async function showTab(t) {
+  state._tab = t; renderPipe();
+  const v = $("#view");
+  if (t === "review") { v.innerHTML = `<pre>${esc(await api(`/deals/${deal}/review`)) || "nothing flagged yet"}</pre>`; return; }
+  if (t === "package") {
+    const pkg = await api(`/deals/${deal}/package`);
+    v.innerHTML = `<div class="pkg">` + Object.entries(pkg).map(([k, txt]) => txt == null ? "" :
+      `<h3>${k} <button class="copy" data-c="${k}">copy</button></h3><pre id="pkg-${k}">${esc(txt)}</pre>`).join("") + `</div>` || "<p class='mute'>no package yet</p>";
+    v.querySelectorAll(".copy").forEach(b => b.onclick = () => navigator.clipboard.writeText(pkg[b.dataset.c]));
+    return;
+  }
+  let txt = ""; try { txt = await api(`/deals/${deal}/links/${t}`); } catch { v.innerHTML = "<p class='mute'>not produced yet</p>"; return; }
+  v.innerHTML = `<div class="row"><button id="save" class="primary">Save edits</button><span class="mute">Edits here are what the next link reads.</span></div><textarea id="ta"></textarea>`;
+  $("#ta").value = txt;
+  $("#save").onclick = async () => { await put(`/deals/${deal}/links/${t}`, { text: $("#ta").value }); $("#status").textContent = "saved"; };
+}
+const esc = (s) => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
+
+$("#deal").onchange = (e) => selectDeal(e.target.value);
+$("#newDeal").onclick = () => $("#newForm").hidden = !$("#newForm").hidden;
+$("#newForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const body = Object.fromEntries(new FormData(e.target).entries());
+  for (const k in body) if (!body[k]) delete body[k];
+  const r = await post("/deals", body); deal = r.deal; e.target.reset(); $("#newForm").hidden = true; loadDeals();
+};
+$("#btnHarvest").onclick = () => post(`/deals/${deal}/harvest`);
+$("#btnRun").onclick = () => post(`/deals/${deal}/run`, { from:"00", skipCheckpoints: $("#skipCp").checked });
+$("#btnFrom").onclick = () => post(`/deals/${deal}/run`, { from: $("#from").value, skipCheckpoints: $("#skipCp").checked });
+$("#btnChain2").onclick = async () => {
+  const transcript = prompt("Paste the demo-one transcript"); if (!transcript) return;
+  const chat_log = prompt("Chat log (optional)") || ""; const channel_joiners = prompt("Who joined the channel? (optional)") || "";
+  await post(`/deals/${deal}/chain2`, { transcript, chat_log, channel_joiners });
+};
+$("#tabs").onclick = (e) => e.target.dataset.t && showTab(e.target.dataset.t);
+$("#from").innerHTML = FROM.map(f => `<option>${f}</option>`).join("");
+loadDeals();
+</script>
+</body>
+</html>

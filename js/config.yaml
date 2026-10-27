@@ -1,0 +1,51 @@
+model: claude-opus-5-5
+our_company: Slack
+default_time_budget: 45
+harvest_max_turns: 80
+
+# House product scope. A deal yaml can override with its own product_scope.
+product_scope: |
+  In scope: Slack core (channels, huddles, canvases, lists), Slack AI (search, summaries, recaps),
+  Workflow Builder, Salesforce integration (Sales Elevate), Slack Connect, Enterprise Grid admin
+  (SCIM, DLP, audit logs, eDiscovery, data residency). Out of scope: pricing.
+max_tokens: 16000
+runs_dir: runs
+prompts_dir: prompts
+ref_dir: ref
+
+# Effort per link. Sweep 00, 01 and 04 on your own runs before trusting these.
+effort:
+  "00a_harvest": medium
+  "00_footprint": high
+  "01_commit": high
+  "02_storyboard": medium
+  "03_scene": medium
+  "03b_signal_guide": medium
+  "04_evaluate": low
+  "05_optimize": medium
+  "06_assemble": medium
+  "07_red_team": high
+  "08_whole": medium
+  "09_package": medium
+  "10_debrief": medium
+  "11_confirmed_hinge": high
+
+# Loop caps live here, not in prompts.
+max_scene_loops: 2
+words_per_minute: 130
+
+# Links that pause for a human before the next one runs.
+checkpoints: ["01_commit", "08_whole"]
+
+# Web search for the footprint link (server-side tool).
+web_search:
+  type: web_search_20250305
+  name: web_search
+  max_uses: 25
+
+red_team_personas:
+  silent_room: "one of six attendees in a room where nobody unmutes, nobody types, and cameras are off; you are waiting to see whether anyone else cares before you do"
+  show_everything: "the VP who was promised a full product tour by the account executive and says 'just show us the product' at minute three"
+  exec_leaves: "the CIO who has a hard stop at minute fifteen and has not told anyone"
+  corrects_opening: "the engineering manager who corrects the opening claim with something specific and slightly embarrassing for the presenter, because it is wrong"
+  rep_talks_over: "the account executive on the call who keeps interjecting with value statements and promises the product may not keep"

@@ -1,0 +1,9 @@
+# Fallback when harvest.py can't run: paste the invite and rep note by hand.
+prospect_name: Harborline Logistics
+invite: |
+  Subject: Slack walkthrough - Harborline
+  Attendees: Priya Nair (VP Engineering), Tom Reyes (Director of IT), Dana Okafor (Head of Customer Ops),
+  Marcus Lee (Security Engineering Manager), Jen Alvarez (Account Executive, Slack)
+  Body: Team - Jen from Slack is going to show us the platform. 45 min. Bring questions.
+rep_note: |
+  they're on teams, eng team hates it, cio wants to consolidate tools. show them everything incl AI and salesforce stuff.

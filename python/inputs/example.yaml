@@ -1,0 +1,13 @@
+# Minimal deal file. Everything else comes from harvest.py (internal systems)
+# and 00_footprint (public web + any screenshots you drop in).
+prospect_name: Harborline Logistics
+rep_name: Jen Alvarez          # optional; harvest finds it from the invite otherwise
+# time_budget: 45              # defaults from config.yaml
+# memo_deadline: "11:00 today"
+# images:                      # optional screenshots for the footprint link
+#   - inputs/harborline/status_page.png
+
+# For --chain2 after demo one:
+# transcript: |
+# chat_log: |
+# channel_joiners: "Priya Nair, Marcus Lee"

@@ -1,0 +1,7 @@
+node_modules/
+runs/
+__pycache__/
+*.pyc
+.mcp.json
+*.zip
+.DS_Store

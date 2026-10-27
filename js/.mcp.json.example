@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "slack":           {"type": "http", "url": "<from claude mcp list>"},
+    "gmail":           {"type": "http", "url": "<from claude mcp list>"},
+    "google-calendar": {"type": "http", "url": "<from claude mcp list>"},
+    "google-drive":    {"type": "http", "url": "<from claude mcp list>"},
+    "granola":         {"type": "http", "url": "<from claude mcp list>"},
+    "notion":          {"type": "http", "url": "<from claude mcp list>"},
+    "salesforce":      {"type": "http", "url": "<from claude mcp list>"}
+  }
+}
